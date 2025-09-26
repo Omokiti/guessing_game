@@ -8,7 +8,11 @@ export class gameLogic{
     constructor(io){
         this.io = io;
     }
-
+//git init
+//git add .
+//git commit -m ''
+//git remode add origin https://github.com/Omokiti/guessing_game.git
+// git push -u origin main
 
  async createSession(sessionCode, socket,master){
     try {

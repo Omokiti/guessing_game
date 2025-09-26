@@ -59,7 +59,7 @@
     <button onclick="copyCode()">📋 Copy</button>
   </div> -->
 
-  <script>
+  <script src="/socket.io/socket.io.js">
     const socket = io('http://localhost:3000');
 
     const usernameInput = document.getElementById('username');
@@ -191,5 +191,6 @@
       leaderboardDiv.innerHTML = html;
     }
   </script>
+  <script src="client.js"></script>
 </body>
 </html>
