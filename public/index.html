@@ -1,196 +1,53 @@
-<!DOCTYPE html>
+
+  <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guessing Game</title>
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px;background-color: plum; }
-    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
-    #players { margin-bottom: 10px; }
-    #leaderboard { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-    input, button { padding: 5px; margin: 5px 0; }
-    .session-box {
-      margin: 20px;
-      padding: 10px;
-      border: 2px solid #444;
-      border-radius: 8px;
-      display: inline-block;
-    }
-    button {
-      margin-left: 10px;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px;background-color: #DDA0DD; }
+    #chat, #players, #leaderboard { margin-top: 15px; padding: 10px; border: 1px solid #ccc; min-height: 50px; }
+    #sessionBox { margin-top: 15px; }
+    button { margin: 5px 0; }
   </style>
 </head>
 <body>
   <h1>Guessing Game</h1>
 
   <div>
-    <input type="text" id="username" placeholder="Your name" />
-    <input type="text" id="sessionId" placeholder="Session ID" />
+    <input id="username" placeholder="Enter your name" />
+    <input id="sessionId" placeholder="Enter session code" />
     <button id="createSessionBtn">Create Session</button>
     <button id="joinSessionBtn">Join Session</button>
   </div>
-  <!-- <div>
-    <h3>Players Connected</h3>
-    <ul id="players"></ul>
-  </div> -->
-  
-  <div id="players">Players connected: 0</div>
-  <div id="leaderboard">Leaderboard:</div>
-  <div id="chat"></div>
 
-  <div>
-    <input type="text" id="questionInput" placeholder="Enter question" />
-    <input type="text" id="answerInput" placeholder="Enter answer" />
+  <div id="sessionBox"></div>
+
+  <div style="margin-top:20px;">
+    <input id="questionInput" placeholder="Enter question" />
+    <input id="answerInput" placeholder="Enter answer" />
     <button id="setQuestionBtn">Set Question</button>
     <button id="startGameBtn">Start Game</button>
   </div>
 
-  <div>
-    <input type="text" id="guessInput" placeholder="Your guess" />
-    <button id="guessBtn">Submit Guess</button>
+  <div style="margin-top:20px;">
+    <input id="guessInput" placeholder="Enter your guess" />
+    <button id="guessBtn">Guess</button>
   </div>
-  <div id="sessionBox" class="session-box"></div>
-  <!-- <div class="session-box">
-    <span id="sessionCode"></span>
-    <button onclick="copyCode()">📋 Copy</button>
-  </div> -->
 
-  <script src="/socket.io/socket.io.js">
-    const socket = io('http://localhost:3000');
+  <h2>Game Feed</h2>
+  <div id="chat"></div>
 
-    const usernameInput = document.getElementById('username');
-    const sessionIdInput = document.getElementById('sessionId');
-    const chatDiv = document.getElementById('chat');
-    const playersDiv = document.getElementById('players');
-    const leaderboardDiv = document.getElementById('leaderboard');
+  <h2>Players</h2>
+  <div id="players"></div>
 
-    document.getElementById('createSessionBtn').onclick = () => {
-      socket.emit('createSession', {
-        sessionCode: sessionIdInput.value,
-        master: usernameInput.value
-      });
-    };
+  <h2>Leaderboard</h2>
+  <div id="leaderboard"></div>
 
-    document.getElementById('joinSessionBtn').onclick = () => {
-      socket.emit('joinSession', {
-        sessionCode: sessionIdInput.value,
-        username: usernameInput.value
-      });
-    };
-
-    document.getElementById('setQuestionBtn').onclick = () => {
-      socket.emit('setQuestion', {
-        sessionCode: sessionIdInput.value,
-        question: document.getElementById('questionInput').value,
-        answer: document.getElementById('answerInput').value
-      });
-    };
-
-    document.getElementById('startGameBtn').onclick = () => {
-      socket.emit('startGame', { sessionCode: sessionIdInput.value });
-    };
-
-    // document.getElementById('endGameBtn').onclick =()=>{
-    //     socket.emit('endGame',{sessionCode})
-    // }
-    document.getElementById('guessBtn').onclick = () => {
-      socket.emit('guess', {
-        sessionCode: sessionIdInput.value,
-        guess: document.getElementById('guessInput').value
-      });
-    };
-
-    // Listen for updates
-    // socket.on('updatedPlayers', (players) => {
-    //   playersDiv.innerText = `Players connected: ${players.length} → ${players.map(p => p.username).join(', ')}`;
-    //   updateLeaderboard(players);
-    // });
-    socket.on("playerList", (players) => {
-  const playerListDiv = document.getElementById("players");
-  playerListDiv.innerHTML = players.map(p => `<li>${p.username} (${p.score})</li>`).join("");
-});
-
-
-  socket.on("sessionCreated", ({ sessionCode }) => {
-    console.log("📢 Session created, code received:", sessionCode);
-
-    // Create the HTML dynamically
-    document.getElementById("sessionBox").innerHTML = `
-      <span id="sessionCode">${sessionCode}</span>
-      <button onclick="copyCode()">📋 Copy</button>
-    `;
-
-    chatDiv.innerHTML += `<div>Session ${sessionCode} created. You are the game master.</div>`;
-  });
-
-  // Clear session code box when game ends
-  socket.on("gameEnded", ({ message, winner }) => {
-    console.log("🎮 Game ended:", message);
-
-    // Remove session box
-    document.getElementById("sessionBox").innerHTML = "";
-
-    // Show game result in chat
-    chatDiv.innerHTML += `<div>${message}</div>`;
-    if (winner) {
-      chatDiv.innerHTML += `<div>🏆 Winner: ${winner}</div>`;
-    }
-  });
-
-  function copyCode() {
-    const code = document.getElementById("sessionCode")?.innerText.trim();
-    
-    if (!code) {
-      alert("⚠️ No session code to copy!");
-      return;
-    }
-
-    navigator.clipboard.writeText(code)
-      .then(() => alert("✅ Session code copied: " + code))
-      .catch(err => console.error("Failed to copy code", err));
-  }
-
-
-    socket.on('newQuestion', ({ question }) => {
-      chatDiv.innerHTML += `<div>New Question: ${question}</div>`;
-    });
-
-    socket.on('gameStarted', ({ message }) => {
-      chatDiv.innerHTML += `<div style="color:green">${message}</div>`;
-    });
-
-    socket.on('wrongGuess', (msg) => {
-      chatDiv.innerHTML += `<div style="color:red">${msg}</div>`;
-    });
-
-    socket.on('attemptsOver', (msg) => {
-      chatDiv.innerHTML += `<div style="color:orange">${msg}</div>`;
-    });
-
-    socket.on('gameEnded', ({ message, winner, players }) => {
-      chatDiv.innerHTML += `<div style="color:blue">${message}${winner ? ' Winner: ' + winner : ''}</div>`;
-      updateLeaderboard(players);
-    });
-
-    socket.on('error', (msg) => {
-      chatDiv.innerHTML += `<div style="color:red">Error: ${msg}</div>`;
-    });
-     
-
-
-    function updateLeaderboard(players) {
-      if (!players) return;
-      let html = "<strong>Leaderboard:</strong><br/>";
-      players.forEach(p => {
-        html += `${p.username}: ${p.score} pts<br/>`;
-      });
-      leaderboardDiv.innerHTML = html;
-    }
-  </script>
+  <!-- Import socket.io client from server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Import your game logic -->
   <script src="client.js"></script>
 </body>
 </html>

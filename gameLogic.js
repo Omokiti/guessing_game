@@ -119,61 +119,67 @@ async setQuestions(sessionCode,question,answer){
             players:time.players
         });
         logger.warn(`Game in session ${sessionCode} ended`)
-    },300000)
+    },600000)
  } catch (error) {
     logger.error(`Error setting question in session ${sessionCode}:${error.message}`)
  }
 }
-// 600000
 
-async handleGuess(sessionCode,socket,guess){
+
+async handleGuess(sessionCode, socket, guess) {
     try {
-        const session = await prisma.session.findUnique({
-            where: {sessionCode},
-            include: { players:true}
-        })
-        if(!session || !session.inProgress) return;
-
-        const playerId = this.sockets[socket.id];
-        if (!playerId) {
-          socket.emit("error", "Player not found.");
-          return;
-        }
-
-        const player = session.players.find((p) => p.id ===playerId);
-        if(!player) return;
-
-        if( guess.toLowerCase() === session.answer){
-            await prisma.player.update({
-                where:{ id:player.id},
-                data:{ score:{ increment:10 }}
-            })
-
-            await prisma.session.update({
-                where :{ sessionCode },
-                data:{ inProgress:false }
-            })
-
-            const updatedPlayers = await prisma.player.findMany({
-                where:{ sessionId:session.id }
-            })
-            this.io.to(sessionCode).emit('game has ended',{
-                message:`${player.username} guessed correctly , The answer is ${session.answer}`,
-                winner: player.username,
-                players:updatedPlayers
-            })
-
-            logger.info(`player ${player.username} won in session ${sessionCode}`)
-        } else{
-            socket.emit('wrong guess please try again')
-            logger.info(`player ${player.username} guessed wrong in session ${sessionCode}`)
-        }
+      const session = await prisma.session.findUnique({
+        where: { sessionCode },
+        include: { players: true }
+      });
+      if (!session || !session.inProgress) return;
+  
+      const playerId = this.sockets[socket.id];
+      if (!playerId) {
+        socket.emit("error", "Player not found.");
+        return;
+      }
+  
+      const player = session.players.find((p) => p.id === playerId);
+      if (!player) return;
+  
+      if (guess.toLowerCase() === session.answer) {
+        // Update player score
+        await prisma.player.update({
+          where: { id: player.id },
+          data: { score: { increment: 10 } }
+        });
+  
+        // End the game
+        await prisma.session.update({
+          where: { sessionCode },
+          data: { inProgress: false }
+        });
+  
+        // Get updated players for leaderboard
+        const updatedPlayers = await prisma.player.findMany({
+          where: { sessionId: session.id }
+        });
+  
+        // ✅ Emit consistent event
+        this.io.to(sessionCode).emit("gameEnded", {
+          message: `${player.username} guessed correctly! 🎉 The answer was ${session.answer}`,
+          winner: player.username,
+          players: updatedPlayers
+        });
+  
+        logger.info(`player ${player.username} won in session ${sessionCode}`);
+      } else {
+        // ✅ Emit with correct event name + message
+        socket.emit("wrongGuess", `${player.username} guessed wrong in session ${sessionCode}`);
+  
+        logger.info(`player ${player.username} guessed wrong in session ${sessionCode}`);
+      }
     } catch (error) {
-        logger.error(`Error handling guess in session ${sessionCode}: ${error.message}`)
-        
+      logger.error(`Error handling guess in session ${sessionCode}: ${error.message}`);
     }
-
-}
+  }
+  
 
 
 
